@@ -9,8 +9,9 @@ class _Group(command.CommandObject):
         in other window managers. Each client window managed by the window
         manager belongs to exactly one group.
     """
-    def __init__(self, name, layout=None):
+    def __init__(self, name, layout=None, alias=None):
         self.name = name
+        self.alias = alias or name
         self.customLayout = layout  # will be set on _configure
         self.windows = set()
         self.qtile = None
@@ -153,6 +154,7 @@ class _Group(command.CommandObject):
     def info(self):
         return dict(
             name=self.name,
+            alias=self.alias,
             focus=self.currentWindow.name if self.currentWindow else None,
             windows=[i.name for i in self.windows],
             layout=self.layout.name,

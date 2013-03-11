@@ -1169,13 +1169,18 @@ class Qtile(command.CommandObject):
         mb.startInput(prompt, self.moveToGroup, "group", strict_completer=True)
 
     def cmd_switchgroup(self, prompt="group: ", widget="prompt"):
-        def f(group):
-            if group:
+        def f(group_search):
+            if group_search:
                 try:
-                    self.groupMap[group].cmd_toscreen()
+                    return self.groupMap[group_search].cmd_toscreen()
                 except KeyError:
-                    self.log.info("No group named '%s' present." % group)
                     pass
+
+                for group in self.groupMap.values():
+                    if group.alias.startswith(group_search):
+                        return group.cmd_toscreen()
+
+                self.log.info("No group named '%s' present." % group)
 
         mb = self.widgetMap.get(widget)
         if not mb:
@@ -1183,6 +1188,13 @@ class Qtile(command.CommandObject):
             return
 
         mb.startInput(prompt, f, "group", strict_completer=True)
+
+    def cmd_add_alias_to_group(self):
+        def f(name):
+            self.currentGroup.alias = name
+
+        prompt = self.widgetMap.get('prompt')
+        prompt.startInput('name: ', f, "group", strict_completer=True)
 
     def cmd_spawncmd(self, prompt="spawn: ", widget="prompt",
                      command="%s", complete="cmd"):

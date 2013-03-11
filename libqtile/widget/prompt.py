@@ -142,9 +142,11 @@ class GroupCompleter:
         txt = txt.lower()
         if not self.lookup:
             self.lookup = []
-            for group in self.qtile.groupMap.keys():
-                if group.lower().startswith(txt):
-                    self.lookup.append((group, group))
+            for group_key, group in self.qtile.groupMap.iteritems():
+                if group_key.lower().startswith(txt):
+                    self.lookup.append((group_key, group_key))
+                elif group.alias.startswith(txt):
+                    self.lookup.append((group.alias, group.alias))
 
             self.lookup.sort()
             self.offset = -1
