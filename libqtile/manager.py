@@ -1169,18 +1169,12 @@ class Qtile(command.CommandObject):
         mb.startInput(prompt, self.moveToGroup, "group", strict_completer=True)
 
     def cmd_switchgroup(self, prompt="group: ", widget="prompt"):
-        def f(group_search):
-            if group_search:
+        def f(group):
+            if group:
                 try:
-                    return self.groupMap[group_search].cmd_toscreen()
+                    self.groupMap[group].cmd_toscreen()
                 except KeyError:
-                    pass
-
-                for group in self.groupMap.values():
-                    if group.alias.startswith(group_search):
-                        return group.cmd_toscreen()
-
-                self.log.info("No group named '%s' present." % group)
+                    self.log.info("No group named '%s' present." % group)
 
         mb = self.widgetMap.get(widget)
         if not mb:
@@ -1188,6 +1182,32 @@ class Qtile(command.CommandObject):
             return
 
         mb.startInput(prompt, f, "group", strict_completer=True)
+
+    def cmd_magicsearch(self, prompt="search: ", widget="prompt"):
+        def f(search):
+            if search and type(search) == tuple:
+                completer, key = search
+
+                if completer == 'group':
+                    for group in self.groupMap.values():
+                        if group.alias == key:
+                            group.cmd_toscreen()
+
+                elif completer == 'window':
+                    window = self.windowMap.get(key)
+                    if window:
+                        window.group.cmd_toscreen()
+                        window.group.focus(window, False)
+
+                else:
+                    self.log.info("No magic match for %s.", search)
+
+        mb = self.widgetMap.get(widget)
+        if not mb:
+            self.log.warning("No widget named '%s' present." % widget)
+            return
+
+        mb.startInput(prompt, f, "magic", strict_completer=True)
 
     def cmd_add_alias_to_group(self):
         def f(name):

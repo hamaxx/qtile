@@ -119,17 +119,23 @@ class QshCompleter:
 
 
 class GroupCompleter:
-    def __init__(self, qtile):
+    def __init__(self, qtile, comparator='startswith'):
         self.qtile = qtile
+        self.comparator = comparator
         self.thisfinal = None
         self.lookup = None
         self.offset = None
 
-    def actual(self):
+    def _find(self, s, sub):
+        f = getattr(s, self.comparator)(sub)
+        return f == True or f >= 0
+
+    def actual(self, match=False):
         """
             Returns the current actual value.
         """
-        return self.thisfinal
+        if not match or self.offset != len(self.lookup) - 1:
+            return self.thisfinal
 
     def reset(self):
         self.lookup = None
@@ -143,9 +149,9 @@ class GroupCompleter:
         if not self.lookup:
             self.lookup = []
             for group_key, group in self.qtile.groupMap.iteritems():
-                if group_key.lower().startswith(txt):
+                if self._find(group_key.lower(), txt):
                     self.lookup.append((group_key, group_key))
-                elif group.alias.startswith(txt):
+                elif self._find(group.alias, txt):
                     self.lookup.append((group.alias, group.alias))
 
             self.lookup.sort()
@@ -161,17 +167,23 @@ class GroupCompleter:
 
 
 class WindowCompleter:
-    def __init__(self, qtile):
+    def __init__(self, qtile, comparator='startswith'):
         self.qtile = qtile
+        self.comparator = comparator
         self.thisfinal = None
         self.lookup = None
         self.offset = None
 
-    def actual(self):
+    def _find(self, s, sub):
+        f = getattr(s, self.comparator)(sub)
+        return f == True or f >= 0
+
+    def actual(self, match=False):
         """
             Returns the current actual value.
         """
-        return self.thisfinal
+        if not match or self.offset != len(self.lookup) - 1:
+            return self.thisfinal
 
     def reset(self):
         self.lookup = None
@@ -184,7 +196,7 @@ class WindowCompleter:
         if not self.lookup:
             self.lookup = []
             for wid, window in self.qtile.windowMap.iteritems():
-                if window.group and window.name.lower().startswith(txt):
+                if window.group and self._find(window.name.lower(), txt):
                     self.lookup.append((window.name, wid))
 
             self.lookup.sort()
@@ -197,6 +209,42 @@ class WindowCompleter:
         ret = self.lookup[self.offset]
         self.thisfinal = ret[1]
         return ret[0]
+
+class MagicCompleter:
+    Completers = [('group', GroupCompleter), ('window', WindowCompleter)]
+
+    def __init__(self, qtile):
+        self.completers = []
+        for name, Comp in self.Completers:
+            comp = Comp(qtile, comparator='find')
+            comp.skip_next = False
+
+            self.completers.append((name, comp))
+
+        self.thisfinal = None
+        self.thiscompleter = None
+
+    def actual(self):
+        """
+            Returns the current actual value.
+        """
+        return (self.thiscompleter, self.thisfinal)
+
+    def reset(self):
+        for name, comp in self.completers:
+            comp.reset()
+
+    def complete(self, txt):
+        """
+        Returns the next completion for txt, or None if there is no completion.
+        """
+        for name, comp in self.completers:
+            res = comp.complete(txt)
+            if res and comp.actual(match=True):
+                self.thisfinal = comp.actual()
+                self.thiscompleter = name
+                return res
+        return txt
 
 
 class CommandCompleter:
@@ -283,6 +331,7 @@ class Prompt(base._TextBox):
         "cmd": CommandCompleter,
         "group": GroupCompleter,
         "window": WindowCompleter,
+        "magic": MagicCompleter,
         None: NullCompleter
     }
     defaults = [
