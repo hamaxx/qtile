@@ -18,12 +18,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import command
-import confreader
-import drawer
-import hook
-import configurable
-import window
+from . import command
+from . import confreader
+from . import drawer
+from . import hook
+from . import configurable
+from . import window
 
 
 class Gap(command.CommandObject):
@@ -153,7 +153,7 @@ class Bar(Gap, configurable.Configurable):
             raise confreader.ConfigError(
                     "Bars must be at the top or the bottom of the screen."
                   )
-        if len(filter(lambda w: w.width_type == STRETCH, self.widgets)) > 1:
+        if len([w for w in self.widgets if w.width_type == STRETCH]) > 1:
             raise confreader.ConfigError("Only one STRETCH widget allowed!")
 
         Gap._configure(self, qtile, screen)

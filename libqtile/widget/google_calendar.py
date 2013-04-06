@@ -53,7 +53,7 @@
 ###################################################################
 
 from .. import bar, utils
-import base
+from . import base
 import httplib2
 import logging
 import os

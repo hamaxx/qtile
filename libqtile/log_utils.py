@@ -7,7 +7,7 @@ from logging import getLogger, StreamHandler
 class ColorFormatter(logging.Formatter):
     """Logging formatter adding console colors to the output.
     """
-    black, red, green, yellow, blue, magenta, cyan, white = range(8)
+    black, red, green, yellow, blue, magenta, cyan, white = list(range(8))
     colors = {
         'WARNING': yellow,
         'INFO': green,
@@ -32,7 +32,7 @@ class ColorFormatter(logging.Formatter):
         message = message.replace('$RESET', self.reset_seq)\
             .replace('$BOLD', self.bold_seq)\
             .replace('$COLOR', color)
-        for color, value in self.colors.items():
+        for color, value in list(self.colors.items()):
             message = message.replace(
                 '$' + color, self.color_seq % (value + 30))\
                 .replace('$BG' + color, self.color_seq % (value + 40))\

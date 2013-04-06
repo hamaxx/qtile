@@ -2,7 +2,7 @@ import glob
 import os
 import string
 from .. import bar, xkeysyms, xcbq, command
-import base
+from . import base
 
 
 class NullCompleter:
@@ -142,7 +142,7 @@ class GroupCompleter:
         txt = txt.lower()
         if not self.lookup:
             self.lookup = []
-            for group in self.qtile.groupMap.keys():
+            for group in list(self.qtile.groupMap.keys()):
                 if group.lower().startswith(txt):
                     self.lookup.append((group, group))
 
@@ -181,7 +181,7 @@ class WindowCompleter:
         """
         if not self.lookup:
             self.lookup = []
-            for wid, window in self.qtile.windowMap.iteritems():
+            for wid, window in self.qtile.windowMap.items():
                 if window.group and window.name.lower().startswith(txt):
                     self.lookup.append((window.name, wid))
 

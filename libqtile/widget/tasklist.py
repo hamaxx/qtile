@@ -1,6 +1,6 @@
 import cairo
 from .. import bar, hook
-import base
+from . import base
 
 class TaskList(base._Widget):
     defaults = [
@@ -122,10 +122,10 @@ class TaskList(base._Widget):
         if cache:
             return cache
 
-        icons = sorted(window.icons.iteritems(),
+        icons = sorted(iter(window.icons.items()),
                 key=lambda x: abs(self.icon_size-int(x[0].split("x")[0])))
         icon = icons[0]
-        width, height = map(int, icon[0].split("x"))
+        width, height = list(map(int, icon[0].split("x")))
 
         img = cairo.ImageSurface.create_for_data(icon[1],
                         cairo.FORMAT_ARGB32, width, height)

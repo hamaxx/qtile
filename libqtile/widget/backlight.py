@@ -1,7 +1,7 @@
 import cairo
 import os
 from libqtile import bar
-import base
+from . import base
 
 BACKLIGHT_DIR = '/sys/class/backlight'
 

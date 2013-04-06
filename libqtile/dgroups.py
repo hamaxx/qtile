@@ -5,6 +5,7 @@ import libqtile.hook
 from libqtile.config import Key
 from libqtile.command import lazy
 from libqtile.config import Group, Rule
+import collections
 
 def simple_key_binder(mod, keynames=None):
     """
@@ -21,7 +22,7 @@ def simple_key_binder(mod, keynames=None):
             keys = keynames
         else:
             # keys 1 to 9 and 0
-            keys = map(str, range(1, 10) + [0])
+            keys = list(map(str, list(range(1, 10)) + [0]))
 
         # bind all keys
         for keyname, group in zip(keys, dgroup.qtile.groups):
@@ -109,7 +110,7 @@ class DGroups(object):
                     if group:
                         if group_added:
                             for k, v in group.layout_opts:
-                                if callable(v):
+                                if isinstance(v, collections.Callable):
                                     v(group_obj.layout)
                                 else:
                                     setattr(group_obj.layout, k, v)

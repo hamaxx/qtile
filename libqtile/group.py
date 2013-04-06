@@ -1,4 +1,4 @@
-import command, hook, window, utils
+from . import command, hook, window, utils
 import contextlib
 import xcb
 import xcb.xproto
@@ -228,7 +228,7 @@ class _Group(command.CommandObject):
 
     def _items(self, name):
         if name == "layout":
-            return True, range(len(self.layouts))
+            return True, list(range(len(self.layouts)))
         elif name == "window":
             return True, [i.window.wid for i in self.windows]
         elif name == "screen":

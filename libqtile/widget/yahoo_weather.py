@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from .. import bar
-import base
-import urllib
-import urllib2
+from . import base
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 from xml.dom import minidom
 import gobject
 import threading
@@ -75,12 +75,12 @@ class YahooWeather(base._TextBox):
         return False
 
     def fetch_woeid(self, location):
-        url = QUERY_URL + urllib.urlencode({
+        url = QUERY_URL + urllib.parse.urlencode({
             'q': 'select woeid from geo.places where text="%s"' % location,
             'format': 'json'
             })
         try:
-            response = urllib2.urlopen(url)
+            response = urllib.request.urlopen(url)
             data = json.loads(response.read())
             if data['query']['count'] > 1:
                 return data['query']['results']['place'][0]['woeid']
@@ -96,10 +96,10 @@ class YahooWeather(base._TextBox):
             if not self.woeid:
                 return None
         format = 'c' if self.metric else 'f'
-        url = WEATHER_URL + urllib.urlencode({'w': self.woeid, 'u': format})
+        url = WEATHER_URL + urllib.parse.urlencode({'w': self.woeid, 'u': format})
 
         try:
-            response = urllib2.urlopen(url).read()
+            response = urllib.request.urlopen(url).read()
             dom = minidom.parseString(response)
         except Exception:
             ## Invalid response or couldn't parse XML.

@@ -4,20 +4,20 @@
 """
 from xcb.xproto import CW, WindowClass, EventMask
 import struct
-import utils
+from . import utils
 import xcb.randr
 import xcb.xcb
 import xcb.xinerama
 import xcb.xproto
-import xkeysyms
+from . import xkeysyms
 
 
 # hack xcb.xproto for negative numbers
 def ConfigureWindow(self, window, value_mask, value_list):
-    import cStringIO
+    import io
     from struct import pack
     from array import array
-    buf = cStringIO.StringIO()
+    buf = io.StringIO()
     buf.write(pack('xx2xIH2x', window, value_mask))
     buf.write(str(buffer(array('i', value_list))))
     return self.send_request(xcb.Request(buf.getvalue(), 12, True, False),
@@ -153,7 +153,7 @@ class MaskMap:
                     values.append(getattr(val, "_maskvalue", val))
                 del kwargs[s]
         if kwargs:
-            raise ValueError("Unknown mask names: %s" % kwargs.keys())
+            raise ValueError("Unknown mask names: %s" % list(kwargs.keys()))
         return mask, values
 
 ConfigureMasks = MaskMap(xcb.xproto.ConfigWindow)
@@ -168,7 +168,7 @@ class AtomCache:
         self.reverse = {}
 
         # We can change the pre-loads not to wait for a return
-        for name in WindowTypes.keys():
+        for name in list(WindowTypes.keys()):
             self.insert(name=name)
 
         for i in dir(xcb.xproto.Atom):
@@ -351,7 +351,7 @@ class Window:
             data = struct.pack("B" * len(r.value), *(list(r.value)))
             l = struct.unpack_from("=IIIIIIIII", data)
             flags = set()
-            for k, v in HintsFlags.items():
+            for k, v in list(HintsFlags.items()):
                 if l[0] & v:
                     flags.add(k)
             return dict(
@@ -373,7 +373,7 @@ class Window:
             data = struct.pack("B" * len(r.value), *(list(r.value)))
             l = struct.unpack_from("=IIIIIIIIIIIIII", data)
             flags = set()
-            for k, v in NormalHintsFlags.items():
+            for k, v in list(NormalHintsFlags.items()):
                 if l[0] & v:
                     flags.add(k)
             return dict(
@@ -541,8 +541,8 @@ class Window:
         try:
             r = self.conn.conn.core.GetProperty(
                 False, self.wid,
-                self.conn.atoms[prop] if isinstance(prop, basestring) else prop,
-                self.conn.atoms[type] if isinstance(type, basestring) else type,
+                self.conn.atoms[prop] if isinstance(prop, str) else prop,
+                self.conn.atoms[type] if isinstance(type, str) else type,
                 0, (2 ** 32) - 1
             ).reply()
 
@@ -657,9 +657,9 @@ class Font:
 
     def text_extents(self, s):
         s = s + "aaa"
-        print s
+        print(s)
         x = self.conn.conn.core.QueryTextExtents(self.fid, len(s), s).reply()
-        print x
+        print(x)
         return x
 
 
@@ -731,7 +731,7 @@ class Connection:
         self.code_to_syms[first + count - 1] = l
 
         first_sym_to_code = {}
-        for k, s in self.code_to_syms.items():
+        for k, s in list(self.code_to_syms.items()):
             if s[0] and not s[0] in first_sym_to_code:
                 first_sym_to_code[s[0]] = k
 
@@ -749,7 +749,7 @@ class Connection:
         """
             Return the modifier matching keycode.
         """
-        for n, l in self.modmap.items():
+        for n, l in list(self.modmap.items()):
             if keycode in l:
                 return n
         return None

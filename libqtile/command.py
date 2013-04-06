@@ -22,7 +22,7 @@ import inspect
 import traceback
 import textwrap
 import os
-import ipc
+from . import ipc
 
 
 class CommandError(Exception):
@@ -79,7 +79,7 @@ class _Server(ipc.Server):
         selectors, name, args, kwargs = data
         try:
             obj = self.qtile.select(selectors)
-        except _SelectError, v:
+        except _SelectError as v:
             e = formatSelector([(v.name, v.sel)])
             s = formatSelector(selectors)
             return ERROR, "No object %s in path '%s'" % (e, s)
@@ -89,9 +89,9 @@ class _Server(ipc.Server):
         self.qtile.log.info("Command: %s(%s, %s)" % (name, args, kwargs))
         try:
             return SUCCESS, cmd(*args, **kwargs)
-        except CommandError, v:
+        except CommandError as v:
             return ERROR, v.args[0]
-        except Exception, v:
+        except Exception as v:
             return EXCEPTION, traceback.format_exc()
         self.qtile.conn.flush()
 

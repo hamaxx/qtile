@@ -1,7 +1,7 @@
 import cairo
 import os
 from libqtile import bar
-import base
+from . import base
 
 BAT_DIR = '/sys/class/power_supply'
 CHARGED = 'Full'
@@ -238,7 +238,7 @@ class BatteryIcon(_Battery):
             base._TextBox.draw(self)
 
     def setup_images(self):
-        for key, name in self.icons.iteritems():
+        for key, name in self.icons.items():
             try:
                 path = os.path.join(self.theme_path, name)
                 img = cairo.ImageSurface.create_from_png(path)

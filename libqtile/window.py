@@ -24,9 +24,9 @@ import contextlib
 import xcb.xcb
 from xcb.xproto import EventMask, StackMode, SetMode
 import xcb.xproto
-import command
-import utils
-import hook
+from . import command
+from . import utils
+from . import hook
 
 
 # ICCM Constants
@@ -1046,7 +1046,7 @@ class Window(_Window):
         if name == "group":
             return True, None
         elif name == "layout":
-            return True, range(len(self.group.layouts))
+            return True, list(range(len(self.group.layouts)))
         elif name == "screen":
             return True, None
 

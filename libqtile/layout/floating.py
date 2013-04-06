@@ -1,4 +1,4 @@
-from base import Layout
+from .base import Layout
 from .. import manager, window
 
 DEFAULT_FLOAT_WM_TYPES = set([

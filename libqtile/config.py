@@ -1,4 +1,4 @@
-import command, hook, utils, xcbq
+from . import command, hook, utils, xcbq
 
 class Key:
     """
@@ -22,7 +22,7 @@ class Key:
         self.keysym = xcbq.keysyms[key]
         try:
             self.modmask = utils.translateMasks(self.modifiers)
-        except KeyError, v:
+        except KeyError as v:
             raise utils.QtileError(v)
 
     def __repr__(self):
@@ -46,7 +46,7 @@ class Drag(object):
         try:
             self.button_code = int(self.button.replace('Button', ''))
             self.modmask = utils.translateMasks(self.modifiers)
-        except KeyError, v:
+        except KeyError as v:
             raise utils.QtileError(v)
 
     def __repr__(self):
@@ -64,7 +64,7 @@ class Click(object):
         try:
             self.button_code = int(self.button.replace('Button', ''))
             self.modmask = utils.translateMasks(self.modifiers)
-        except KeyError, v:
+        except KeyError as v:
             raise utils.QtileError(v)
 
     def __repr__(self):
@@ -209,7 +209,7 @@ class Screen(command.CommandObject):
 
     def _items(self, name):
         if name == "layout":
-            return True, range(len(self.group.layouts))
+            return True, list(range(len(self.group.layouts)))
         elif name == "window":
             return True, [i.window.wid for i in self.group.windows]
         elif name == "bar":

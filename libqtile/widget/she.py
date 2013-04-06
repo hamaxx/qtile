@@ -22,7 +22,7 @@ class She(base._TextBox):
             '0x301': {'name': 'Normal', 'speed': '1.2GHz'},
             '0x302': {'name': 'PoswerSave', 'speed': '800MHz'}
         }
-        self.modes_index = self.modes.keys().sort()
+        self.modes_index = list(self.modes.keys()).sort()
         self.mode = None
         self.timeout_add(self.update_delay, self.update)
 
@@ -40,7 +40,7 @@ class She(base._TextBox):
         return True
 
     def draw(self):
-        if self.mode in self.modes.keys():
+        if self.mode in list(self.modes.keys()):
             self.text = self.modes[self.mode][self.format]
         else:
             self.text = self.mode

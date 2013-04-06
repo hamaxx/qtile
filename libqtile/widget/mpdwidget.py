@@ -11,7 +11,7 @@
 from .. import bar, utils
 from mpd import MPDClient, CommandError
 import atexit
-import base
+from . import base
 import re
 
 
@@ -263,7 +263,7 @@ class Mpd(base._TextBox):
             elif button == 4:
                 self.client.previous()
             elif button == 5:
-                self.client.next()
+                next(self.client)
             elif button == 8:
                 if status:
                     self.client.setvol(

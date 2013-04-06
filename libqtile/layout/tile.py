@@ -1,4 +1,4 @@
-from base import Layout
+from .base import Layout
 from .. import utils, manager
 
 
@@ -96,7 +96,7 @@ class Tile(Layout):
         previndex = self.get_previous_index(currentindex)
         return self.clients[previndex]
 
-    def next(self):
+    def __next__(self):
         n = self.getPreviousClient()
         self.group.focus(n, True)
 
@@ -195,7 +195,7 @@ class Tile(Layout):
         self.up()
 
     def cmd_next(self):
-        self.next()
+        next(self)
 
     def cmd_previous(self):
         self.previous()

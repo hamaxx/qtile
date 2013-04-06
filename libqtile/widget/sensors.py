@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from .. import bar
-import base
+from . import base
 from subprocess import Popen, PIPE
 import re
 
@@ -28,7 +28,7 @@ class ThermalSensor(base._TextBox):
         base._TextBox.__init__(self, 'N/A', width=bar.CALCULATED, **config)
         self.add_defaults(ThermalSensor.defaults)
         self.sensors_temp = re.compile(
-            ur"""
+            r"""
             ([a-zA-Z]+        #Tag
             \s?[0-9]+):       #Tag number
             \s+[+-]           #Temp signed

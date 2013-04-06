@@ -1,6 +1,6 @@
 import math
 
-from base import Layout
+from .base import Layout
 from .. import utils, manager
 
 
@@ -103,7 +103,7 @@ class GridInfo(object):
         if orientation == ROWCOL:
             x = 0
             y = 0
-            for i, col in enumerate(range(cols)):
+            for i, col in enumerate(list(range(cols))):
                 w_width = width / cols
                 w_height = height / rows
                 if i == cols - 1:
@@ -113,7 +113,7 @@ class GridInfo(object):
         elif orientation == COLROW:
             x = 0
             y = 0
-            for i, col in enumerate(range(rows)):
+            for i, col in enumerate(list(range(rows))):
                 w_width = width / cols
                 w_height = height / rows
                 if i == rows - 1:
@@ -130,10 +130,10 @@ class GridInfo(object):
             self.num_windows, total_width, total_height)
         if orientation == ROWCOL:
             y = 0
-            for i, row in enumerate(range(rows)):
+            for i, row in enumerate(list(range(rows))):
                 x = 0
                 width = total_width / cols
-                for j, col in enumerate(range(cols)):
+                for j, col in enumerate(list(range(cols))):
                     height = total_height / rows
                     if i == rows - 1 and j == 0:
                         # last row
@@ -153,10 +153,10 @@ class GridInfo(object):
                 y += height
         else:
             x = 0
-            for i, col in enumerate(range(cols)):
+            for i, col in enumerate(list(range(cols))):
                 y = 0
                 height = total_height / rows
-                for j, row in enumerate(range(rows)):
+                for j, row in enumerate(list(range(rows))):
                     width = total_width / cols
                     # down first
                     if i == cols - 1 and j == 0:
@@ -311,7 +311,7 @@ class RatioTile(Layout):
             previndex = len(self.windows) - 1
         return self.windows[previndex]
 
-    def next(self):
+    def __next__(self):
         n = self.getPreviousClient()
         self.group.focus(n, True)
 
@@ -331,7 +331,7 @@ class RatioTile(Layout):
         self.up()
 
     def cmd_next(self):
-        self.next()
+        next(self)
 
     def cmd_previous(self):
         self.previous()

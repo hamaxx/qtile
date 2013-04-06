@@ -3,7 +3,7 @@ import sys
 
 from .. import bar, drawer, utils
 from libqtile.notify import notifier
-import base
+from . import base
 
 
 class Notify(base._TextBox):
@@ -60,7 +60,7 @@ class Notify(base._TextBox):
             self.current_id -= 1
         self.display()
 
-    def next(self):
+    def __next__(self):
         if self.current_id < len(notifier.notifications) - 1:
             self.current_id += 1
             self.display()
@@ -71,7 +71,7 @@ class Notify(base._TextBox):
         elif button == 4:
             self.prev()
         elif button == 5:
-            self.next()
+            next(self)
 
     def cmd_display(self):
         self.display()
@@ -89,4 +89,4 @@ class Notify(base._TextBox):
         self.prev()
 
     def cmd_next(self):
-        self.next()
+        next(self)

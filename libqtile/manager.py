@@ -19,32 +19,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from config import Drag, Click, Screen
-from utils import QtileError
+from .config import Drag, Click, Screen
+from .utils import QtileError
 from libqtile.log_utils import init_log
 from libqtile.dgroups import DGroups
-from state import QtileState
-from group import _Group
-from StringIO import StringIO
+from .state import QtileState
+from .group import _Group
+from io import StringIO
 from xcb.xproto import EventMask
 import atexit
-import command
+from . import command
 import gobject
-import hook
+from . import hook
 import logging
 import os
 import os.path
 import pickle
 import sys
 import traceback
-import utils
-import window
+from . import utils
+from . import window
 import xcb
 import xcb.xinerama
 import xcb.xproto
-import xcbq
+from . import xcbq
 
-from widget.base import _Widget
+from .widget.base import _Widget
 
 class Qtile(command.CommandObject):
     """
@@ -283,7 +283,7 @@ class Qtile(command.CommandObject):
         self.root.set_property("_NET_CURRENT_DESKTOP", index)
 
     def addGroup(self, name):
-        if name not in self.groupMap.keys():
+        if name not in list(self.groupMap.keys()):
             g = _Group(name)
             self.groups.append(g)
             g._configure(
@@ -300,7 +300,7 @@ class Qtile(command.CommandObject):
         # one group per screen is needed
         if len(self.groups) == len(self.screens):
             raise ValueError("Can't delete all groups.")
-        if name in self.groupMap.keys():
+        if name in list(self.groupMap.keys()):
             group = self.groupMap[name]
             target = group.prevGroup()
 
@@ -455,7 +455,7 @@ class Qtile(command.CommandObject):
         and drag and drop of tabs in chrome
         """
 
-        windows = [wid for wid, c in self.windowMap.iteritems() if c.group]
+        windows = [wid for wid, c in self.windowMap.items() if c.group]
         self.root.set_property("_NET_CLIENT_LIST", windows)
         # TODO: check stack order
         self.root.set_property("_NET_CLIENT_LIST_STACKING",windows)
@@ -494,7 +494,7 @@ class Qtile(command.CommandObject):
 
     def grabKeys(self):
         self.root.ungrab_key(None, None)
-        for key in self.keyMap.values():
+        for key in list(self.keyMap.values()):
             self.mapKey(key)
 
     def get_target_chain(self, ename, e):
@@ -841,17 +841,17 @@ class Qtile(command.CommandObject):
 
     def _items(self, name):
         if name == "group":
-            return True, self.groupMap.keys()
+            return True, list(self.groupMap.keys())
         elif name == "layout":
-            return True, range(len(self.currentGroup.layouts))
+            return True, list(range(len(self.currentGroup.layouts)))
         elif name == "widget":
-            return False, self.widgetMap.keys()
+            return False, list(self.widgetMap.keys())
         elif name == "bar":
             return False, [x.position for x in self.currentScreen.gaps]
         elif name == "window":
             return True, self.listWID()
         elif name == "screen":
-            return True, range(len(self.screens))
+            return True, list(range(len(self.screens)))
 
     def _select(self, name, sel):
         if name == "group":
@@ -880,10 +880,10 @@ class Qtile(command.CommandObject):
                 return utils.lget(self.screens, sel)
 
     def listWID(self):
-        return [i.window.wid for i in self.windowMap.values()]
+        return [i.window.wid for i in list(self.windowMap.values())]
 
     def clientFromWID(self, wid):
-        for i in self.windowMap.values():
+        for i in list(self.windowMap.values()):
             if i.window.wid == wid:
                 return i
         return None
@@ -935,7 +935,7 @@ class Qtile(command.CommandObject):
         """
             List of all addressible widget names.
         """
-        return self.widgetMap.keys()
+        return list(self.widgetMap.keys())
 
     def cmd_nextlayout(self, group=None):
         """
@@ -1008,7 +1008,7 @@ class Qtile(command.CommandObject):
         d.detail = keycode
         try:
             d.state = utils.translateMasks(modifiers)
-        except KeyError, v:
+        except KeyError as v:
             return v.args[0]
         self.handle_KeyPress(d)
 
@@ -1029,7 +1029,7 @@ class Qtile(command.CommandObject):
 
         buf = StringIO()
         pickle.dump(QtileState(self), buf)
-        argv = filter(lambda s: not s.startswith('--with-state'), argv)
+        argv = [s for s in argv if not s.startswith('--with-state')]
         argv.append('--with-state=' + buf.getvalue())
 
         self.cmd_execute(sys.executable, argv)
@@ -1084,14 +1084,14 @@ class Qtile(command.CommandObject):
         """
             Return info for each client window.
         """
-        return [i.info() for i in self.windowMap.values()
+        return [i.info() for i in list(self.windowMap.values())
                 if not isinstance(i, window.Internal)]
 
     def cmd_internal_windows(self):
         """
             Return info for each internal window (bars, for example).
         """
-        return [i.info() for i in self.windowMap.values()
+        return [i.info() for i in list(self.windowMap.values())
                 if isinstance(i, window.Internal)]
 
     def cmd_qtile_info(self):
@@ -1145,7 +1145,7 @@ class Qtile(command.CommandObject):
 
     def cmd_next_urgent(self):
         try:
-            nxt = filter(lambda w: w.urgent, self.windowMap.values())[0]
+            nxt = filter(lambda w: w.urgent, list(self.windowMap.values()))[0]
             nxt.group.cmd_toscreen()
             nxt.group.focus(nxt, False)
         except IndexError:
@@ -1264,7 +1264,7 @@ class Qtile(command.CommandObject):
             try:
                 return (True, str(eval(code)))
             except SyntaxError:
-                exec code
+                exec(code)
                 return (True, None)
         except:
             error = traceback.format_exc().strip().split("\n")[-1]

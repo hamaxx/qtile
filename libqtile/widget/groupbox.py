@@ -1,5 +1,5 @@
 from .. import bar, hook, utils
-import base
+from . import base
 
 class _GroupBase(base._TextBox):
     defaults = [
@@ -76,8 +76,8 @@ class AGroupBox(_GroupBase):
 
     def draw(self):
         self.drawer.clear(self.background or self.bar.background)
-        e = (i for i in self.qtile.groups
-             if i.name == self.bar.screen.group.name).next()
+        e = next((i for i in self.qtile.groups
+             if i.name == self.bar.screen.group.name))
         self.drawbox(self.margin_x, e.name, self.border, self.foreground)
         self.drawer.draw(self.offset, self.width)
 

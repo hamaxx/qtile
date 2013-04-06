@@ -28,8 +28,8 @@ import textwrap
 import fcntl
 import termios
 import struct
-import command
-import ipc
+from . import command
+from . import ipc
 
 
 def terminalWidth():
@@ -248,9 +248,9 @@ class QSh:
                     dict(cmd=cmd)
                 )
             return val
-        except SyntaxError, v:
+        except SyntaxError as v:
             return "Syntax error in expression: %s" % v.text
-        except command.CommandException, val:
+        except command.CommandException as val:
             return "Command exception: %s\n" % val
         except ipc.IPCError:
             # on restart, try to reconnect
@@ -263,9 +263,9 @@ class QSh:
     def loop(self):
         while True:
             try:
-                line = raw_input(self.prompt)
+                line = input(self.prompt)
             except (EOFError, KeyboardInterrupt):
-                print
+                print()
                 return
             if not line:
                 continue
@@ -282,7 +282,7 @@ class QSh:
                 val = builtin(args)
             else:
                 val = self._call(cmd, args)
-            if isinstance(val, basestring):
-                print val
+            if isinstance(val, str):
+                print(val)
             elif val:
                 pprint.pprint(val)

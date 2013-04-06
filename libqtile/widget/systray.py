@@ -1,5 +1,5 @@
 from .. import bar, xcbq, window
-import base
+from . import base
 
 import xcb
 from xcb.xproto import EventMask, SetMode
@@ -105,7 +105,7 @@ class Systray(base._Widget):
         pass
 
     def calculate_width(self):
-        width = sum([i.width for i in self.icons.values()])
+        width = sum([i.width for i in list(self.icons.values())])
         width += self.padding * len(self.icons)
         return width
 
@@ -135,7 +135,7 @@ class Systray(base._Widget):
         self.drawer.clear(self.background or self.bar.background)
         self.drawer.draw(self.offset, self.calculate_width())
         xoffset = self.padding
-        for pos, icon in enumerate(self.icons.values()):
+        for pos, icon in enumerate(list(self.icons.values())):
             icon.place(
                     self.offset + xoffset,
                     self.bar.height / 2 - self.icon_size / 2,
