@@ -4,6 +4,7 @@ import gobject
 import libqtile.hook
 from libqtile.config import Key
 from libqtile.command import lazy
+from libqtile.config import Group, Rule
 
 def simple_key_binder(mod, keynames=None):
     """
@@ -38,23 +39,6 @@ def simple_key_binder(mod, keynames=None):
 
     return func
 
-class Rule(object):
-    """ A Rule contains a Match object, and a specification about what to do
-    when that object is matched. """
-    def __init__(self, match, group=None, float=False, intrusive=False):
-        """
-        :param match: ``Match`` object associated with this ``Rule``
-        :param float: auto float this window?
-        :param intrusive: override the group's exclusive setting?
-        """
-        self.match = match
-        self.group = group
-        self.float = float
-        self.intrusive = intrusive
-
-    def matches(self, w):
-        return self.match.compare(w)
-
 class DGroups(object):
     ''' Dynamic Groups '''
     def __init__(self, qtile, dgroups, key_binder=None, delay=1):
@@ -62,14 +46,7 @@ class DGroups(object):
 
         self.groups = dgroups
         self.groupMap = {}
-        for group in self.groups:
-            self.groupMap[group.name] = group
-
-        self.rules = list(itertools.chain.from_iterable([g.rules for g in dgroups]))
-
-        for group in dgroups:
-            rules = [Rule(m, group=group.name) for m in group.matches]
-            self.rules.extend(rules)
+        self.rules = getattr(qtile.config, 'dgroups_app_rules', [])
 
         self.keys = []
 
@@ -82,10 +59,16 @@ class DGroups(object):
 
         self.timeout = {}
 
+    def add_dgroup(self, group, start=False):
+        self.groupMap[group.name] = group
+        rules = [Rule(m, group=group.name) for m in group.matches]
+        self.rules.extend(rules)
+        if start:
+            self.qtile.addGroup(group.name, group.layout)
+
     def _setup_groups(self):
         for group in self.groups:
-            if group.init:
-                self.qtile.addGroup(group.name)
+            self.add_dgroup(group, group.init)
 
             if group.spawn and not self.qtile.no_spawn:
                 self.qtile.cmd_spawn(group.spawn)
@@ -98,15 +81,6 @@ class DGroups(object):
                     lambda: self.key_binder(self))
             libqtile.hook.subscribe.changegroup(
                     lambda: self.key_binder(self))
-
-    def shuffle_groups(self, lst, match):
-        masters = []
-        for client in lst:
-            if match.compare(client):
-                masters.append(client)
-        for master in masters:
-            lst.remove(master)
-            lst.insert(0, master)
 
     def _add(self, client):
         if client in self.timeout:
@@ -125,7 +99,11 @@ class DGroups(object):
             # Matching Rules
             if rule.matches(client):
                 if rule.group:
-                    group_added = self.qtile.addGroup(rule.group)
+                    try:
+                        layout = self.groupMap[rule.group].layout
+                    except KeyError:
+                        layout = None
+                    group_added = self.qtile.addGroup(rule.group, layout)
                     client.togroup(rule.group)
 
                     group_set = True
@@ -134,28 +112,22 @@ class DGroups(object):
                     group = self.groupMap.get(rule.group)
                     if group:
                         if group_added:
-                            layout = group.layout
-                            ratio = group.ratio
-                            if layout:
-                                group_obj.layout = layout
-                            if ratio:
-                                group_obj.ratio = ratio
-                        master = group.master
-                        if master:
-                            group_obj.layout.shuffle(
-                                   lambda lst: self.shuffle_groups(
-                                       lst, master))
+                            for k, v in group.layout_opts.iteritems():
+                                if callable(v):
+                                    v(group_obj.layout)
+                                else:
+                                    setattr(group_obj.layout, k, v)
 
                 if rule.float:
                     client.enablefloating()
 
                 if rule.intrusive:
-                    intrusive = group.intrusive
+                    intrusive = rule.intrusive
 
         # If app doesn't have a group
         if not group_set:
             current_group = self.qtile.currentGroup.name
-            if current_group in self.groups and\
+            if current_group in self.groupMap and\
                     self.groupMap[current_group].exclusive and\
                     not intrusive:
 
@@ -173,7 +145,7 @@ class DGroups(object):
                     if not group_name:
                         group_name = "Unnamed"
 
-                self.qtile.addGroup(group_name)
+                self.add_dgroup(Group(group_name, persist=False), start=True)
                 client.togroup(group_name)
 
     def _del(self, client):
@@ -181,8 +153,7 @@ class DGroups(object):
 
         def delete_client():
             # Delete group if empty and dont persist
-            if group and \
-               self.groupMap[group.name] in self.groups and \
+            if group and group.name in self.groupMap and \
                not self.groupMap[group.name].persist and \
                len(group.windows) <= 0:
                 self.qtile.delGroup(group.name)

@@ -103,6 +103,7 @@ class Screen(command.CommandObject):
         A physical screen, and its associated paraphernalia.
     """
     group = None
+    previous_group = None
 
     def __init__(self, top=None, bottom=None, left=None, right=None,
                  x=None, y=None, width=None, height=None):
@@ -176,9 +177,15 @@ class Screen(command.CommandObject):
         """
         if new_group.screen == self:
             return
-        elif new_group.screen:
+
+        self.previous_group = self.group
+
+        if new_group is None:
+            return
+
+        if new_group.screen:
             # g1 <-> s1 (self)
-            # g2 (new_group)<-> s2 to
+            # g2 (new_group) <-> s2 to
             # g1 <-> s2
             # g2 <-> s1
             g1 = self.group
@@ -260,20 +267,45 @@ class Screen(command.CommandObject):
         """
         self.resize(x, y, w, h)
 
+    def cmd_nextgroup(self, skip_empty=False, skip_managed=False):
+        """
+            Switch to the next group.
+        """
+        n = self.group.nextGroup(skip_empty, skip_managed)
+        self.setGroup(n)
+        return n.name
+
+    def cmd_prevgroup(self, skip_empty=False, skip_managed=False):
+        """
+            Switch to the previous group.
+        """
+        n = self.group.prevGroup(skip_empty, skip_managed)
+        self.setGroup(n)
+        return n.name
+
+    def cmd_togglegroup(self, groupName=None):
+        """
+            Switch to the selected group or to the previously active one.
+        """
+        group = self.qtile.groupMap.get(groupName)
+        if group in (self.group, None):
+            group = self.previous_group
+        self.setGroup(group)
+
+
 class Group(object):
     """
     Represents a "dynamic" group. These groups can spawn apps, only allow
     certain Matched windows to be on them, hide when they're not in use, etc.
     """
-    def __init__(self, name, matches=None, rules=None, exclusive=False,
-                 spawn=None, layout=None, persist=True, init=True,):
+    def __init__(self, name, matches=None, exclusive=False,
+                 spawn=None, layout=None, persist=True, init=True,
+                 layout_opts=None):
         """
         :param name: the name of this group
         :type name: string
         :param matches: list of ``Match`` objects whose  windows will be assigned to this group
         :type matches: default ``None``
-        :param rules: list of ``Rule`` objectes wich are applied to this group
-        :type rules: default ``None``
         :param exclusive: when other apps are started in this group, should we allow them here or not?
         :type exclusive: boolean
         :param spawn: this will be ``exec()`` d when the group is created
@@ -292,22 +324,16 @@ class Group(object):
         self.layout = layout
         self.persist = persist
         self.init = init
-        self.rules = rules
-        if self.rules is None:
-            self.rules = []
-        for rule in self.rules:
-            rule.group = self.name
         if matches is None:
             matches = []
         self.matches = matches
-
-        # undocumented, any idea what these do?
-        self.master = None
-        self.ratio = None
+        self.layout_opts = layout_opts or {}
 
 class Match(object):
-    ''' Match for dynamic groups
-        it can match by title, class or role '''
+    """
+        Match for dynamic groups
+        It can match by title, class or role.
+    """
     def __init__(self, title=None, wm_class=None, role=None, wm_type=None):
         """
 
@@ -355,3 +381,28 @@ class Match(object):
             if value and match_func(value):
                 return True
         return False
+
+    def map(callback, clients):
+        """ Apply callback to each client that matches this Match """
+        for c in clients:
+            if self.compare(c):
+                callback(c)
+
+class Rule(object):
+    """
+        A Rule contains a Match object, and a specification about what to do
+        when that object is matched.
+    """
+    def __init__(self, match, group=None, float=False, intrusive=False):
+        """
+        :param match: ``Match`` object associated with this ``Rule``
+        :param float: auto float this window?
+        :param intrusive: override the group's exclusive setting?
+        """
+        self.match = match
+        self.group = group
+        self.float = float
+        self.intrusive = intrusive
+
+    def matches(self, w):
+        return self.match.compare(w)

@@ -100,6 +100,10 @@ FULLSCREEN = 4
 TOP = 5
 MINIMIZED = 6
 
+_NET_WM_STATE_REMOVE = 0
+_NET_WM_STATE_ADD = 1
+_NET_WM_STATE_TOGGLE = 2
+
 
 class _Window(command.CommandObject):
     def __init__(self, window, qtile):
@@ -134,7 +138,6 @@ class _Window(command.CommandObject):
 
         self.hints = {
             'input': True,
-            'state': NormalState,  # Normal state
             'icon_pixmap': None,
             'icon_window': None,
             'icon_x': 0,
@@ -455,10 +458,13 @@ class _Window(command.CommandObject):
 
         cls = self.window.get_wm_class() or ''
         is_java_main = 'sun-awt-X11-XFramePeer' in cls
-        is_java = is_java_main or 'sun-awt-X11-XDialogPeer' in cls
+        is_java_dialog = 'sun-awt-X11-XDialogPeer' in cls
+        is_java = is_java_main or is_java_dialog
 
-        if is_java_main and not self.hidden:
-            if "WM_TAKE_FOCUS" in self.window.get_wm_protocols():
+        if not self.hidden:
+            # Never send TAKE_FOCUS on java *dialogs*
+            if (not is_java_dialog and
+                    "WM_TAKE_FOCUS" in self.window.get_wm_protocols()):
                 vals = [
                     33,
                     32,
@@ -474,6 +480,7 @@ class _Window(command.CommandObject):
                 e = struct.pack('BBHII5I', *vals)
                 self.window.send_event(e)
 
+            # Never send FocusIn to java windows
             if not is_java and self.hints['input']:
                 self.window.set_input_focus()
             try:
@@ -665,6 +672,7 @@ class Window(_Window):
         # add window to the save-set, so it gets mapped when qtile dies
         qtile.conn.conn.core.ChangeSaveSet(SetMode.Insert, self.window.wid)
         self.update_wm_net_icon()
+        self.first_float_configure = False
 
     @property
     def group(self):
@@ -854,10 +862,12 @@ class Window(_Window):
         self._reconfigure_floating(new_float_state=new_float_state)
 
     def enablefloating(self):
+        self.first_float_configure = True
         fi = self._float_info
         self._enablefloating(fi['x'], fi['y'], fi['w'], fi['h'])
 
     def disablefloating(self):
+        self.first_float_configure = False
         if self._float_state != NOT_FLOATING:
             if self._float_state == FLOATING:
                 # store last size
@@ -938,16 +948,23 @@ class Window(_Window):
             return
         if getattr(self, 'floating', False):
             # only obey resize for floating windows
-            screen = self.group.screen
             cw = xcb.xproto.ConfigWindow
             if e.value_mask & cw.Width:
                 self.width = e.width
             if e.value_mask & cw.Height:
                 self.height = e.height
             if e.value_mask & cw.X:
-                self.x = screen.x + ((screen.width - self.width) // 2)
+                self.x = e.x
             if e.value_mask & cw.Y:
-                self.y = screen.y + ((screen.height - self.height) // 2)
+                self.y = e.y
+
+            # Center things on first ConfigureRequest
+            if self.group.screen and self.first_float_configure:
+                screen = self.group.screen
+                self.first_float_configure = False
+                self.x = self.x + ((screen.width - self.width) // 2)
+                self.y = self.y + ((screen.height - self.width) // 2)
+
         if self.group and self.group.screen:
             self.place(
                 self.x,
@@ -958,6 +975,7 @@ class Window(_Window):
                 self.bordercolor,
                 twice=True,
             )
+        self.updateState()
         return False
 
     def update_wm_net_icon(self):
@@ -997,6 +1015,44 @@ class Window(_Window):
         self.icons = icons
         hook.fire("net_wm_icon_change", self)
 
+    def handle_ClientMessage(self, event):
+        atoms = self.qtile.conn.atoms
+
+        opcode = xcb.xproto.ClientMessageData(event, 0, 20).data32[2]
+        data = xcb.xproto.ClientMessageData(event, 12, 20)
+        if (atoms["_NET_WM_STATE"] == opcode and 
+                self.qtile.config.auto_fullscreen):
+            fullscreen_atom = atoms["_NET_WM_STATE_FULLSCREEN"]
+
+            prev_state = self.window.get_property('_NET_WM_STATE',
+                "ATOM", unpack='I')
+            if not prev_state:
+                prev_state = []
+                if self.fullscreen:
+                    prev_state.append(fullscreen_atom)
+
+            current_state = set(prev_state)
+
+            action = data.data32[0]
+            for prop in (data.data32[1], data.data32[2]):
+                if not prop:
+                    # skip 0
+                    continue
+
+                prop_name = atoms.get_name(prop)
+
+                if action == _NET_WM_STATE_REMOVE:
+                    current_state.discard(prop)
+                elif action == _NET_WM_STATE_ADD:
+                    current_state.add(prop)
+                elif action == _NET_WM_STATE_TOGGLE:
+                    current_state ^= set([prop]) # toggle :D
+
+            # add support for additional flags here
+            self.fullscreen = (fullscreen_atom in current_state)
+
+            self.window.set_property('_NET_WM_STATE', list(current_state))
+
     def handle_PropertyNotify(self, e):
         name = self.qtile.conn.atoms.get_name(e.atom)
         self.qtile.log.debug("PropertyNotifyEvent: %s" % name)
@@ -1005,7 +1061,7 @@ class Window(_Window):
         elif name == "WM_HINTS":
             self.updateHints()
         elif name == "WM_NORMAL_HINTS":
-            pass
+            self.updateHints()
         elif name == "WM_NAME":
             self.updateName()
         elif name == "_NET_WM_NAME":
@@ -1029,7 +1085,11 @@ class Window(_Window):
         elif name == "WM_PROTOCOLS":
             pass
         elif name == "_NET_WM_DESKTOP":
-            pass
+            # Some windows set the state(fullscreen) when starts,
+            # updateState is here because the group and the screen
+            # are set when the property is emitted
+            #self.updateState()
+            self.updateState()
         elif name == "_NET_WM_USER_TIME":
             if not self.qtile.config.follow_mouse_focus and \
                             self.group.currentWindow != self:

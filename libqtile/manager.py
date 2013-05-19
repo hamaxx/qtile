@@ -107,6 +107,18 @@ class Qtile(command.CommandObject):
                 EventMask.LeaveWindow)
         )
 
+        self.root.set_property('_NET_SUPPORTED',
+            [self.conn.atoms[x] for x in xcbq.SUPPORTED_ATOMS])
+
+        self.supporting_wm_check_window = self.conn.create_window(-1, -1, 1, 1)
+        self.root.set_property('_NET_SUPPORTING_WM_CHECK',
+            self.supporting_wm_check_window.wid)
+
+        # TODO: maybe allow changing the name without external tools?
+        self.supporting_wm_check_window.set_property('_NET_WM_NAME', "qtile")
+        self.supporting_wm_check_window.set_property('_NET_SUPPORTING_WM_CHECK',
+            self.supporting_wm_check_window.wid)
+
         if config.main:
             config.main(self)
 
@@ -122,7 +134,6 @@ class Qtile(command.CommandObject):
             _Widget.global_defaults = {}
 
         for i in self.groups:
-            i._configure(config.layouts, config.floating_layout, self)
             self.groupMap[i.name] = i
 
         self.currentScreen = None
@@ -282,9 +293,9 @@ class Qtile(command.CommandObject):
             )
         self.root.set_property("_NET_CURRENT_DESKTOP", index)
 
-    def addGroup(self, name):
+    def addGroup(self, name, layout=None):
         if name not in self.groupMap.keys():
-            g = _Group(name)
+            g = _Group(name, layout)
             self.groups.append(g)
             g._configure(
                 self.config.layouts, self.config.floating_layout, self)
@@ -297,11 +308,15 @@ class Qtile(command.CommandObject):
         return False
 
     def delGroup(self, name):
-        if len(self.groups) == len(self.screens) + 1:
+        # one group per screen is needed
+        if len(self.groups) == len(self.screens):
             raise ValueError("Can't delete all groups.")
         if name in self.groupMap.keys():
             group = self.groupMap[name]
-            target = group.prevGroup()
+            if group.screen and group.screen.previous_group:
+                target = group.screen.previous_group
+            else:
+                target = group.prevGroup()
 
             # Find a group that's not currently on a screen to bring to the
             # front. This will terminate because of our check above.
