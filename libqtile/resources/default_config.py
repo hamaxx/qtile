@@ -39,13 +39,12 @@ keys = [
 
     # Toggle between split and unsplit sides of stack.
     # Split = all windows displayed
-    # Unsplit = 1 window displayed, like Max layout, but still with multiple stack panes
+    # Unsplit = 1 window displayed, like Max layout, but still with
+    # multiple stack panes
     Key(
         [mod, "shift"], "Return",
         lazy.layout.toggle_split()
     ),
-    Key([mod], "h",      lazy.to_screen(1)),
-    Key([mod], "l",      lazy.to_screen(0)),
     Key([mod], "Return", lazy.spawn("xterm")),
 
     # Toggle between different layouts as defined below
@@ -87,17 +86,17 @@ layouts = [
 
 screens = [
     Screen(
-        bottom = bar.Bar(
-                    [
-                        widget.GroupBox(),
-                        widget.Prompt(),
-                        widget.WindowName(),
-                        widget.TextBox("default config", name="default"),
-                        widget.Systray(),
-                        widget.Clock('%Y-%m-%d %a %I:%M %p'),
-                    ],
-                    30,
-                ),
+        bottom=bar.Bar(
+            [
+                widget.GroupBox(),
+                widget.Prompt(),
+                widget.WindowName(),
+                widget.TextBox("default config", name="default"),
+                widget.Systray(),
+                widget.Clock('%Y-%m-%d %a %I:%M %p'),
+            ],
+            30,
+        ),
     ),
 ]
 
